@@ -1,1 +1,176 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"/>
+<title>VisApp Doesburg</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- App icon -->
+<link rel="icon" href="visapp-icon.png">
+
+<!-- Leaflet kaart -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+.topbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  z-index: 1000;
+  text-align: center;
+}
+
+.bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  z-index: 1000;
+}
+
+button, select {
+  margin: 2px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+}
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+
+<!-- Bovenbalk -->
+<div class="topbar">
+  <b>VisApp Doesburg</b><br>
+  <select id="fish">
+    <option value="all">Alle vis</option>
+    <option value="karper">Karper</option>
+    <option value="roofvis">Roofvis</option>
+    <option value="witvis">Witvis</option>
+  </select>
+  <button onclick="bestSpot()">⭐ Beste stek nu</button>
+</div>
+
+<!-- Seizoenen -->
+<div class="bottom">
+  <button onclick="setSeason('lente')">🌱</button>
+  <button onclick="setSeason('zomer')">☀️</button>
+  <button onclick="setSeason('herfst')">🍂</button>
+  <button onclick="setSeason('winter')">❄️</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Kaart
+var map = L.map('map').setView([52.013, 6.143], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+// Huidig seizoen
+var season = "lente";
+
+// Visstekken + scores
+var spots = [
+  {
+    lat: 52.0125,
+    lon: 6.1415,
+    name: "Visstoepen Oude IJssel",
+    score: {
+      karper: { lente: 5, zomer: 4, herfst: 4, winter: 1 },
+      witvis: { lente: 4, zomer: 4, herfst: 3, winter: 2 }
+    }
+  },
+  {
+    lat: 52.0135,
+    lon: 6.1500,
+    name: "Gelderse IJssel",
+    score: {
+      roofvis: { lente: 2, zomer: 3, herfst: 5, winter: 4 }
+    }
+  },
+  {
+    lat: 52.0130,
+    lon: 6.1430,
+    name: "Samenvloeiing Oude IJssel / IJssel",
+    score: {
+      roofvis: { lente: 5, zomer: 2, herfst: 5, winter: 1 },
+      witvis: { lente: 4, zomer: 3, herfst: 4, winter: 1 }
+    }
+  }
+];
+
+// Markers
+spots.forEach(s => {
+  s.marker = L.marker([s.lat, s.lon])
+    .addTo(map)
+    .bindPopup("<b>" + s.name + "</b>");
+});
+
+// Seizoen instellen
+function setSeason(s) {
+  season = s;
+}
+
+// Beste stek bepalen
+function bestSpot() {
+  var fish = document.getElementById("fish").value;
+  var best = null;
+  var bestScore = -1;
+
+  spots.forEach(s => {
+    if (fish === "all") {
+      for (const f in s.score) {
+        if (s.score[f][season] > bestScore) {
+          bestScore = s.score[f][season];
+          best = s;
+        }
+      }
+    } else if (s.score[fish]) {
+      if (s.score[fish][season] > bestScore) {
+        bestScore = s.score[fish][season];
+        best = s;
+      }
+    }
+  });
+
+  if (best) {
+    map.setView([best.lat, best.lon], 16);
+    best.marker.openPopup();
+  }
+}
+
+// GPS-locatie
+map.locate({ setView: false });
+
+map.on('locationfound', function(e) {
+  L.circleMarker(e.latlng, { radius: 6 })
+    .addTo(map)
+    .bindPopup("📍 Jij bent hier");
+});
+</script>
+</body>
+</html>
